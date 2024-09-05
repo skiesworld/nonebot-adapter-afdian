@@ -17,15 +17,26 @@
     ```
 
 3.  配置
-    ```dotenv
-    AFDIAN_BOTS='[
-        {
-            "user_id": "Your User id",
-            "api_token": "Your Api Token"
-        }
-    ]'
-    ```
 
+    - NoneBot2
+        ```dotenv
+        DRIVER=~fastapi+~httpx
+        HOST=0.0.0.0
+        AFDIAN_BOTS='[
+            {
+                "user_id": "<Your User id>",
+                "api_token": "<Your Api Token>"
+            }
+        ]'
+        ```
+    - 爱发电开发者控制台
+        ```shell
+        http://<IP>:<PORT>/afdian/webhooks/<user_id>
+        ```
+        or
+        ```shell
+        https://<IP>:<PORT>/afdian/webhooks/<user_id>
+        ```
 ## API
 
 ```python
