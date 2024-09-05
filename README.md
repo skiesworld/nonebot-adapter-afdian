@@ -41,12 +41,12 @@ async def handle_afd(bot: Bot, event: OrderNotifyEvent):
     print(result1)
 
     result2 = await bot.query_order_by_out_trade_no(
-        out_trade_no="202408070218485652995332024"
+        out_trade_no="202308200000000000000000001"
         )
     print(result2)
 
     result3 = await bot.query_order_by_order_list(
-        order_list=["202408070218485652995332024", "202308281533159897535713113"]
+        order_list=["202308200000000000000000000", "202308200000000000000000001"]
         )
     print(result3)
 
