@@ -65,9 +65,8 @@ class Adapter(BaseAdapter):
         self.driver.on_startup(self._startup)
 
     async def _startup(self):
-        await asyncio.gather(
-            *(self._startup_bot(bot_info) for bot_info in self.afdian_config.afdian_bots)
-        )
+        for bot_info in self.afdian_config.afdian_bots:
+            await self._startup_bot(bot_info)
 
     async def _startup_bot(self, bot_info: BotInfo):
         bot = Bot(self, self_id=bot_info.user_id, bot_info=bot_info)
