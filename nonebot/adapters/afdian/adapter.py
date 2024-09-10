@@ -40,6 +40,7 @@ class Adapter(BaseAdapter):
     def __init__(self, driver: Driver, **kwargs: Any):
         super().__init__(driver, **kwargs)
         self.afdian_config: Config = get_plugin_config(Config)
+        self.tasks: list[asyncio.Task] = []
         self._setup()
 
     @classmethod
@@ -67,7 +68,7 @@ class Adapter(BaseAdapter):
 
     async def _startup(self):
         for bot_info in self.afdian_config.afdian_bots:
-            await self._startup_bot(bot_info)
+            self.tasks.append(asyncio.create_task(self._startup_bot(bot_info)))
 
     async def _startup_bot(self, bot_info: BotInfo):
         bot = Bot(self, self_id=bot_info.user_id, bot_info=bot_info)
