@@ -7,19 +7,27 @@ license = "MIT"
 readme = "README.md"
 packages = [{ include = "nonebot" }]
 
+[tool.nonebot]
+adapters = [{ name = "Afdian", module_name = "nonebot.adapters.afdian" }]
+plugins = []
+plugin_dirs = []
+builtin_plugins = []
+
 [tool.poetry.dependencies]
 python = "^3.10"
 nonebot2 = "^2.2.0"
 pydantic = ">=1.10.0,<3.0.0,!=2.5.0,!=2.5.1"
 
-[tool.poetry.group.test.dependencies]
+[tool.poetry.group.dev.dependencies]
 ruff = "^0.5.0"
+black = "^24.1.1"
 isort = "^5.10.1"
+pre-commit = "^3.7.0"
 nonebug = "^0.3.5"
 pytest-cov = "^4.0.0"
-pre-commit = "^3.7.0"
 pytest-asyncio = "^0.23.0"
-nonebot2 = { version = "^2.2.0", extras = ["fastapi"] }
+pydantic = "^2.7.4"
+nonebot2 = { version = "^2.2.0", extras = ["fastapi", "httpx"] }
 
 [tool.pytest.ini_options]
 addopts = "--cov=nonebot/adapters/afdian --cov-report term-missing"
