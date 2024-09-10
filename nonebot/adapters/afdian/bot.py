@@ -8,6 +8,7 @@ from nonebot.adapters import Bot as BaseBot
 from .event import Event
 from .config import BotInfo
 from .message import Message, MessageSegment
+from .payload import PingResponse, OrderResponse, SponsorResponse
 
 if TYPE_CHECKING:
     from .adapter import Adapter
@@ -22,10 +23,10 @@ class Bot(BaseBot):
         self.api_token = bot_info.api_token
         self.bot_info = bot_info
 
-    async def send_ping(self):
+    async def send_ping(self) -> PingResponse:
         return await self.call_api("/api/open/ping", data={})
 
-    async def __query_order(self, query: Dict[str, Any]):
+    async def __query_order(self, query: Dict[str, Any]) -> OrderResponse:
         return await self.call_api("/api/open/query-order", data=query)
 
     async def query_order_by_page(self, page: int):
@@ -43,7 +44,7 @@ class Bot(BaseBot):
         order_list_str = ",".join([out_trade_no for out_trade_no in order_list])
         return await self.__query_order(query={"out_trade_no": order_list_str})
 
-    async def query_sponsor(self, page: int, per_page: int = 20):
+    async def query_sponsor(self, page: int, per_page: int = 20) -> SponsorResponse:
         """查询赞助者，可选传参每页数量 1-100"""
         if page <= 0:
             raise ValueError("page must be greater than 0")
