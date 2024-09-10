@@ -1,8 +1,9 @@
 from pathlib import Path
-import nonebot
+
 import pytest
 from nonebug import NONEBOT_INIT_KWARGS
 
+import nonebot
 from nonebot.adapters.afdian.adapter import Adapter
 
 nonebot.adapters.__path__.append(  # type: ignore
