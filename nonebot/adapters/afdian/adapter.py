@@ -46,7 +46,7 @@ class Adapter(BaseAdapter):
     @classmethod
     @override
     def get_name(cls) -> str:
-        return "Afdian"
+        return "AFDian"
 
     def _setup(self):
         if not isinstance(self.driver, ReverseDriver):
