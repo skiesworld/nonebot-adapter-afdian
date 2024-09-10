@@ -2,8 +2,8 @@ import json
 import time
 import asyncio
 import hashlib
-from typing import Any, cast
 from functools import partial
+from typing import Any, Dict, cast
 from typing_extensions import override
 
 from nonebot.utils import escape_tag
@@ -72,7 +72,15 @@ class Adapter(BaseAdapter):
 
     async def _startup_bot(self, bot_info: BotInfo):
         bot = Bot(self, self_id=bot_info.user_id, bot_info=bot_info)
-        result: PingResponse = await bot.send_ping()
+        result: PingResponse | WrongResponse = await bot.send_ping()
+
+        if isinstance(result, WrongResponse):
+            log(
+                "ERROR",
+                f"<y>Bot {bot.self_id}</y> connect <r>failed</r>, explain: {result.data.explain}, debug: {result.data.debug.kv_string}"
+            )
+            return
+
         if result.ec != 200:
             log("ERROR", f"<y>Bot {bot.self_id}</y> connect <r>failed</r>")
             return
@@ -90,7 +98,32 @@ class Adapter(BaseAdapter):
             if event.ec != 200:
                 log("ERROR", f"Webhook data parse failed: {event.em}")
                 return Response(400, content='{"ec": 400, "em": "parse event failed"}')
+
             bot = cast(Bot, self.bots[bot_info.user_id])
+
+            # 每当有订单时，平台会请求开发者配置的url（如果服务器异常，可能不保证能及时推送，因此建议结合API一起使用）
+            verify_request = self.construct_request(
+                bot,
+                "/api/open/ping",
+                {"out_trade_no": event.data.order.out_trade_no}
+            )
+
+            verify_response: Response = await self.request(verify_request)
+
+            if verify_response.status_code != 200:
+                log("ERROR", f"Webhook data verify request failed: {verify_response.content}")
+                return Response(400, content='{"ec": 400, "em": "Webhook data verify request failed"}')
+
+            verify_order = type_validate_python(OrderResponse, verify_response.content)
+
+            if verify_order.ec != 200:
+                log("ERROR", f"Webhook data verify failed: {verify_order.em}")
+                return Response(400, content='{"ec": 400, "em": "Webhook data verify failed"}')
+
+            if not verify_order.data.list:
+                log("ERROR", f"Webhook data parse failed: {verify_order.em}")
+                return Response(400, content='{"ec": 400, "em": "order list is empty"}')
+
             asyncio.create_task(bot.handle_event(event))
         return Response(200, content='{"ec": 200, "em": "success"}')
 
@@ -100,6 +133,21 @@ class Adapter(BaseAdapter):
             log("ERROR", f"Unsupported api: {api}")
             raise ApiNotAvailable(api)
 
+        request = self.construct_request(bot, api, data)
+
+        response = await bot.adapter.request(request)
+        response_json = json.loads(response.content)
+        for model in (PingResponse, WrongResponse, OrderResponse, SponsorResponse, TSExpiredResponse):
+            try:
+                result = type_validate_python(model, response_json)
+                return result
+            except Exception:
+                continue
+        else:
+            log("ERROR", f"Parse result failed: {response_json}")
+            raise ActionFailed(response)
+
+    def construct_request(self, bot: Bot, api: str, data: Dict[str, str]) -> Request:
         ts = int(time.time())
         param_json_data = json.dumps(data)
         sign_str = f"{bot.api_token}params{param_json_data}ts{ts}user_id{bot.self_id}"
@@ -114,14 +162,4 @@ class Adapter(BaseAdapter):
                 "sign": sign
             }
         )
-        response = await bot.adapter.request(request)
-        response_json = json.loads(response.content)
-        for model in (PingResponse, WrongResponse, OrderResponse, SponsorResponse, TSExpiredResponse):
-            try:
-                result = type_validate_python(model, response_json)
-                return result
-            except Exception:
-                continue
-        else:
-            log("ERROR", f"Parse result failed: {response_json}")
-            raise ActionFailed(response)
+        return request
