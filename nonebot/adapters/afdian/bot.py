@@ -1,12 +1,12 @@
-from typing import Union, Any, TYPE_CHECKING, Dict, List
+from typing_extensions import override
+from typing import TYPE_CHECKING, Any, Dict, List, Union
 
 from nonebot.message import handle_event
-from typing_extensions import override
 
 from nonebot.adapters import Bot as BaseBot
 
-from .config import BotInfo
 from .event import Event
+from .config import BotInfo
 from .message import Message, MessageSegment
 
 if TYPE_CHECKING:

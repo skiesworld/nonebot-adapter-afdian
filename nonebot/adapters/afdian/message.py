@@ -1,7 +1,8 @@
 from typing import Type, Iterable
 from typing_extensions import override
 
-from nonebot.adapters import Message as BaseMessage, MessageSegment as BaseMessageSegment
+from nonebot.adapters import Message as BaseMessage
+from nonebot.adapters import MessageSegment as BaseMessageSegment
 
 
 class MessageSegment(BaseMessageSegment["Message"]):

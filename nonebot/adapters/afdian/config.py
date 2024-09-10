@@ -1,6 +1,6 @@
 from typing import List
 
-from pydantic import Field, BaseModel, HttpUrl
+from pydantic import Field, HttpUrl, BaseModel
 
 
 class BotInfo(BaseModel):

@@ -1,6 +1,7 @@
+from typing_extensions import override
+
 from nonebot import escape_tag, model_dump
 from nonebot.adapters import Event as BaseEvent
-from typing_extensions import override
 
 from .message import Message
 from .payload import WebhookData
