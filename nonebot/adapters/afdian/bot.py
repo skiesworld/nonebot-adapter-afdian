@@ -8,8 +8,8 @@ from nonebot.adapters import Bot as BaseBot
 from .event import Event
 from .config import BotInfo
 from .message import Message, MessageSegment
-from .payload import PingResponse, OrderResponse, SponsorResponse, WrongResponse
-from .utils import construct_request, parse_response
+from .utils import parse_response, construct_request
+from .payload import PingResponse, OrderResponse, WrongResponse, SponsorResponse
 
 if TYPE_CHECKING:
     from .adapter import Adapter
