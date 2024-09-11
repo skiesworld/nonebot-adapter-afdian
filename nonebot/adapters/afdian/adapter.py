@@ -1,11 +1,10 @@
-import asyncio
 import json
-from functools import partial
+import asyncio
 from typing import Any, cast
+from functools import partial
+from typing_extensions import override
 
-from nonebot import get_plugin_config
-from nonebot.adapters import Adapter as BaseAdapter
-from nonebot.adapters.afdian.exception import ApiNotAvailable
+from nonebot.utils import escape_tag
 from nonebot.compat import type_validate_python
 from nonebot.drivers import (
     URL,
@@ -15,14 +14,16 @@ from nonebot.drivers import (
     ReverseDriver,
     HTTPServerSetup,
 )
-from nonebot.utils import escape_tag
-from typing_extensions import override
+
+from nonebot import get_plugin_config
+from nonebot.adapters import Adapter as BaseAdapter
+from nonebot.adapters.afdian.exception import ApiNotAvailable
 
 from .bot import Bot
 from .config import Config, BotInfo
 from .event import OrderNotifyEvent
-from .payload import PingResponse, WrongResponse, OrderResponse
-from .utils import log, construct_request, parse_response
+from .utils import log, parse_response, construct_request
+from .payload import PingResponse, OrderResponse, WrongResponse
 
 
 class Adapter(BaseAdapter):
