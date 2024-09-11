@@ -88,42 +88,41 @@ class Adapter(BaseAdapter):
         except Exception as e:
             log("ERROR", f"Webhook data parse to event failed: {e}")
             return Response(400, content='{"ec": 400, "em": "parse data failed"}')
+
+        bot = cast(Bot, self.bots[bot_info.user_id])
+
+        # 每当有订单时，平台会请求开发者配置的url（如果服务器异常，可能不保证能及时推送，因此建议结合API一起使用）
+        verify_request = self.construct_request(
+            bot,
+            "/api/open/query-order",
+            {"query": {"out_trade_no": event.data.order.out_trade_no}}
+        )
+        verify_response: Response = await self.request(verify_request)
+
+        # 验证失败
+        if verify_response.status_code != 200:
+            log("ERROR", f"Webhook verified data request failed: {verify_response.content}")
+            return Response(400, content='{"ec": 400, "em": "Webhook verified data request failed"}')
+
+        if verify_order := verify_model(verify_response):
+            if isinstance(verify_request, WrongResponse):
+                log("ERROR", f"Webhook verified data request wrong, ec: {verify_request.ec}, em: {verify_request.em}")
+                return Response(400, content='{"ec": 400, "em": "Webhook verify request data failed"}')
+            elif isinstance(verify_order, OrderResponse):
+                if not verify_order.data.list:
+                    log("ERROR", "Webhook data <y>list</y> is <r>empty</r>! Verify failed.")
+                    return Response(400, content='{"ec": 400, "em": "order list is empty"}')
+
+                for order in verify_order.data.list:
+                    if order.out_trade_no == event.data.order.out_trade_no:
+                        asyncio.create_task(bot.handle_event(event))
+                        return Response(200, content='{"ec": 200, "em": "success"}')
+                else:
+                    log("ERROR", "Webhook data <y>out_trade_no</y> not found in <y>list</y>! Verify failed.")
+                    return Response(400, content='{"ec": 400, "em": "order not found"}')
         else:
-            bot = cast(Bot, self.bots[bot_info.user_id])
-
-            # 每当有订单时，平台会请求开发者配置的url（如果服务器异常，可能不保证能及时推送，因此建议结合API一起使用）
-            verify_request = self.construct_request(
-                bot,
-                "/api/open/query-order",
-                {"query": {"out_trade_no": event.data.order.out_trade_no}}
-            )
-            verify_response: Response = await self.request(verify_request)
-
-            # 验证失败
-            if verify_response.status_code != 200:
-                log("ERROR", f"Webhook verified data request failed: {verify_response.content}")
-                return Response(400, content='{"ec": 400, "em": "Webhook verified data request failed"}')
-
-            if verify_order := verify_model(verify_response):
-                if isinstance(verify_request, WrongResponse):
-                    log("ERROR",
-                        f"Webhook verified data request wrong, ec: {verify_request.ec}, em: {verify_request.em}")
-                    return Response(400, content='{"ec": 400, "em": "Webhook verify request data failed"}')
-                elif isinstance(verify_order, OrderResponse):
-                    if not verify_order.data.list:
-                        log("ERROR", f"Webhook data <y>list</y> is <r>empty</r>! Verify failed.")
-                        return Response(400, content='{"ec": 400, "em": "order list is empty"}')
-
-                    for order in verify_order.data.list:
-                        if order.out_trade_no == event.data.order.out_trade_no:
-                            asyncio.create_task(bot.handle_event(event))
-                            return Response(200, content='{"ec": 200, "em": "success"}')
-                    else:
-                        log("ERROR", f"Webhook data <y>out_trade_no</y> not found in <y>list</y>! Verify failed.")
-                        return Response(400, content='{"ec": 400, "em": "order not found"}')
-            else:
-                log("ERROR", f"Webhook data verify failed: {verify_response.content}")
-                return Response(400, content='{"ec": 400, "em": "Webhook data verify failed"}')
+            log("ERROR", f"Webhook data verify failed: {verify_response.content}")
+            return Response(400, content='{"ec": 400, "em": "Webhook data verify failed"}')
 
     @override
     async def _call_api(self, bot: Bot, api: str, **data: Any) -> Any:
