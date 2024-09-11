@@ -104,8 +104,8 @@ class Adapter(BaseAdapter):
             # 每当有订单时，平台会请求开发者配置的url（如果服务器异常，可能不保证能及时推送，因此建议结合API一起使用）
             verify_request = self.construct_request(
                 bot,
-                "/api/open/ping",
-                {"out_trade_no": event.data.order.out_trade_no}
+                "/api/open/query-order",
+                {"query": {"out_trade_no": event.data.order.out_trade_no}}
             )
 
             verify_response: Response = await self.request(verify_request)
@@ -147,9 +147,9 @@ class Adapter(BaseAdapter):
             log("ERROR", f"Parse result failed: {response_json}")
             raise ActionFailed(response)
 
-    def construct_request(self, bot: Bot, api: str, data: Dict[str, str]) -> Request:
+    def construct_request(self, bot: Bot, api: str, data: Dict[str, Any]) -> Request:
         ts = int(time.time())
-        param_json_data = json.dumps(data)
+        param_json_data = json.dumps(data.get("query"))
         sign_str = f"{bot.api_token}params{param_json_data}ts{ts}user_id{bot.self_id}"
         sign = hashlib.md5(sign_str.encode("utf-8")).hexdigest()
         request = Request(

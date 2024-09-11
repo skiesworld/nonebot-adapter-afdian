@@ -24,10 +24,10 @@ class Bot(BaseBot):
         self.bot_info = bot_info
 
     async def send_ping(self) -> PingResponse:
-        return await self.call_api("/api/open/ping", data={})
+        return await self.call_api("/api/open/ping", query={"a": 333})
 
     async def __query_order(self, query: Dict[str, Any]) -> OrderResponse:
-        return await self.call_api("/api/open/query-order", data=query)
+        return await self.call_api("/api/open/query-order", query=query)
 
     async def query_order_by_page(self, page: int):
         """根据页码查询订单"""
