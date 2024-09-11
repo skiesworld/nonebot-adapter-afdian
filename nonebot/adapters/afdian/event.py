@@ -63,7 +63,13 @@ class OrderNotifyEvent(Event):
 
     @override
     def get_session_id(self) -> str:
+        return self.get_user_id()
+
+    def get_user_private_id(self) -> str:
         return self.data.order.user_private_id
+
+    def get_order(self):
+        return self.data.order
 
     @override
     def get_event_description(self) -> str:
