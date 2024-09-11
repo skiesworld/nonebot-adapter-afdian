@@ -1,12 +1,11 @@
-import json
-import time
 import asyncio
-import hashlib
+import json
 from functools import partial
-from typing import Any, Dict, cast
-from typing_extensions import override
+from typing import Any, cast
 
-from nonebot.utils import escape_tag
+from nonebot import get_plugin_config
+from nonebot.adapters import Adapter as BaseAdapter
+from nonebot.adapters.afdian.exception import ApiNotAvailable
 from nonebot.compat import type_validate_python
 from nonebot.drivers import (
     URL,
@@ -16,16 +15,14 @@ from nonebot.drivers import (
     ReverseDriver,
     HTTPServerSetup,
 )
-
-from nonebot import get_plugin_config
-from nonebot.adapters import Adapter as BaseAdapter
+from nonebot.utils import escape_tag
+from typing_extensions import override
 
 from .bot import Bot
 from .config import Config, BotInfo
 from .event import OrderNotifyEvent
-from .utils import log, verify_model
-from .exception import ActionFailed, ApiNotAvailable
-from .payload import PingResponse, OrderResponse, WrongResponse
+from .payload import PingResponse, WrongResponse, OrderResponse
+from .utils import log, construct_request, parse_response
 
 
 class Adapter(BaseAdapter):
@@ -57,7 +54,6 @@ class Adapter(BaseAdapter):
                 partial(self._handle_webhook, bot_info=bot_info),
             )
             self.setup_http_server(webhook_route)
-
         self.driver.on_startup(self._startup)
 
     async def _startup(self):
@@ -66,7 +62,13 @@ class Adapter(BaseAdapter):
 
     async def _startup_bot(self, bot_info: BotInfo):
         bot = Bot(self, self_id=bot_info.user_id, bot_info=bot_info)
-        result: PingResponse | WrongResponse = await bot.send_ping()
+        request = construct_request(
+            self.afdian_config.afdian_api_base + "/api/open/ping",
+            bot_info,
+            params={"a": 333}
+        )
+        response = await self.request(request)
+        result = parse_response(response, PingResponse)
 
         if isinstance(result, WrongResponse):
             log(
@@ -89,70 +91,41 @@ class Adapter(BaseAdapter):
             log("ERROR", f"Webhook data parse to event failed: {e}")
             return Response(400, content='{"ec": 400, "em": "parse data failed"}')
 
-        bot = cast(Bot, self.bots[bot_info.user_id])
-
         # 每当有订单时，平台会请求开发者配置的url（如果服务器异常，可能不保证能及时推送，因此建议结合API一起使用）
-        verify_request = self.construct_request(
-            bot,
-            "/api/open/query-order",
-            {"query": {"out_trade_no": event.data.order.out_trade_no}}
+        verify_request = construct_request(
+            self.afdian_config.afdian_api_base + "/api/open/query-order",
+            bot_info,
+            {"out_trade_no": event.data.order.out_trade_no}
         )
         verify_response: Response = await self.request(verify_request)
 
-        # 验证失败
+        # 请求失败
         if verify_response.status_code != 200:
-            log("ERROR", f"Webhook verified data request failed: {verify_response.content}")
-            return Response(400, content='{"ec": 400, "em": "Webhook verified data request failed"}')
+            log("ERROR", f"Webhook data request failed when verify: {verify_response.content}")
+            return Response(400, content='{"ec": 400, "em": "Webhook data request failed when verify"}')
 
-        if verify_order := verify_model(verify_response):
-            if isinstance(verify_request, WrongResponse):
-                log("ERROR", f"Webhook verified data request wrong, ec: {verify_request.ec}, em: {verify_request.em}")
-                return Response(400, content='{"ec": 400, "em": "Webhook verify request data failed"}')
-            elif isinstance(verify_order, OrderResponse):
-                if not verify_order.data.list:
-                    log("ERROR", "Webhook data <y>list</y> is <r>empty</r>! Verify failed.")
-                    return Response(400, content='{"ec": 400, "em": "order list is empty"}')
-
-                for order in verify_order.data.list:
-                    if order.out_trade_no == event.data.order.out_trade_no:
-                        asyncio.create_task(bot.handle_event(event))
-                        return Response(200, content='{"ec": 200, "em": "success"}')
-                else:
-                    log("ERROR", "Webhook data <y>out_trade_no</y> not found in <y>list</y>! Verify failed.")
-                    return Response(400, content='{"ec": 400, "em": "order not found"}')
+        verify_order: OrderResponse | WrongResponse = parse_response(verify_response, OrderResponse)
+        if isinstance(verify_request, WrongResponse):
+            log("ERROR", f"Webhook data request failed when verify, ec: {verify_request.ec}, em: {verify_request.em}")
+            return Response(400, content='{"ec": 400, "em": "Webhook data request failed when verify"}')
         else:
-            log("ERROR", f"Webhook data verify failed: {verify_response.content}")
-            return Response(400, content='{"ec": 400, "em": "Webhook data verify failed"}')
+            # 订单列表为空
+            if not verify_order.data.list:
+                log("ERROR", "Webhook data <y>list</y> is <r>empty</r>! Verify failed.")
+                return Response(400, content='{"ec": 400, "em": "order list is empty"}')
+
+            # 订单列表不为空但不一定有需要的数据
+            for order in verify_order.data.list:
+                if order.out_trade_no == event.data.order.out_trade_no:
+                    bot = cast(Bot, self.bots[bot_info.user_id])
+                    asyncio.create_task(bot.handle_event(event))
+                    return Response(200, content='{"ec": 200, "em": "success"}')
+            else:
+                log("ERROR", "Webhook data <y>out_trade_no</y> not found in <y>list</y>! Verify failed.")
+                return Response(400, content='{"ec": 400, "em": "order not found when verify"}')
 
     @override
     async def _call_api(self, bot: Bot, api: str, **data: Any) -> Any:
         if api not in ("/api/open/ping", "/api/open/query-order", "/api/open/query-sponsor"):
             log("ERROR", f"Unsupported api: {api}")
             raise ApiNotAvailable(api)
-
-        request = self.construct_request(bot, api, data)
-
-        response = await bot.adapter.request(request)
-        response_json = json.loads(response.content)
-        if result := verify_model(response):
-            return result
-        else:
-            log("ERROR", f"Parse result failed: {response_json}")
-            raise ActionFailed(response)
-
-    def construct_request(self, bot: Bot, api: str, data: Dict[str, Any]) -> Request:
-        ts = int(time.time())
-        param_json_data = json.dumps(data.get("query"))
-        sign_str = f"{bot.api_token}params{param_json_data}ts{ts}user_id{bot.self_id}"
-        sign = hashlib.md5(sign_str.encode("utf-8")).hexdigest()
-        request = Request(
-            "GET",
-            URL(self.afdian_config.afdian_api_base + api),
-            params={
-                "user_id": bot.bot_info.user_id,
-                "params": param_json_data,
-                "ts": ts,
-                "sign": sign
-            }
-        )
-        return request
