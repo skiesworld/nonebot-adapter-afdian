@@ -19,11 +19,3 @@ repos:
     hooks:
       - id: isort
         stages: [commit, push]  # 在 commit 和 push 时运行 isort
-
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.8
-    hooks:
-      - id: prettier
-        types_or: [javascript, jsx, ts, tsx, markdown, yaml]
-        files: ^(src|docs)/.*\.(js|jsx|ts|tsx|md|yaml)$  # 仅格式化特定目录下的文件
-        stages: [commit, push]  # 在 commit 和 push 时运行 Prettier
