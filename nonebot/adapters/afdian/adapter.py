@@ -6,16 +6,10 @@ from typing_extensions import override
 
 from nonebot.utils import escape_tag
 from nonebot.compat import type_validate_python
-from nonebot.drivers import (
-    URL,
-    Driver,
-    Request,
-    Response,
-    ReverseDriver,
-    HTTPServerSetup,
-)
+from nonebot.internal.driver import HTTPClientMixin
+from nonebot.drivers import URL, Driver, Request, Response, HTTPServerSetup
 
-from nonebot import get_plugin_config
+from nonebot import ASGIMixin, get_plugin_config
 from nonebot.adapters import Adapter as BaseAdapter
 from nonebot.adapters.afdian.exception import ApiNotAvailable
 
@@ -41,11 +35,15 @@ class Adapter(BaseAdapter):
         return "AFDian"
 
     def _setup(self):
-        if not isinstance(self.driver, ReverseDriver):
-            log(
-                "WARNING",
-                f"Current driver {self.config.driver} is not a ReverseDriver. {self.get_name()}"
-                " Webhook disabled.",
+        if not isinstance(self.driver, HTTPClientMixin):
+            raise RuntimeError(
+                f"Current driver {self.config.driver} does not support http client requests! "
+                f"{self.get_name()} Adapter need a HTTPClient Driver to work."
+            )
+        if not isinstance(self.driver, ASGIMixin):
+            raise RuntimeError(
+                f"Current driver {self.config.driver} does not support websocket server! "
+                f"{self.get_name()} Adapter need a ASGI Driver to work."
             )
         for bot_info in self.afdian_config.afdian_bots:
             webhook_route = HTTPServerSetup(
@@ -55,7 +53,7 @@ class Adapter(BaseAdapter):
                 partial(self._handle_webhook, bot_info=bot_info),
             )
             self.setup_http_server(webhook_route)
-        self.driver.on_startup(self._startup)
+        self.on_ready(self._startup)
 
     async def _startup(self):
         for bot_info in self.afdian_config.afdian_bots:
