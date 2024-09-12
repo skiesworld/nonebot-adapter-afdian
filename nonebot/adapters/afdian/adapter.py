@@ -42,7 +42,7 @@ class Adapter(BaseAdapter):
             )
         if not isinstance(self.driver, ASGIMixin):
             raise RuntimeError(
-                f"Current driver {self.config.driver} does not support websocket server! "
+                f"Current driver {self.config.driver} does not support http server! "
                 f"{self.get_name()} Adapter need a ASGI Driver to work."
             )
         for bot_info in self.afdian_config.afdian_bots:
