@@ -60,27 +60,7 @@ class Adapter(BaseAdapter):
             self.tasks.append(asyncio.create_task(self._startup_bot(bot_info)))
 
     async def _startup_bot(self, bot_info: BotInfo):
-        bot = Bot(self, self_id=bot_info.user_id, bot_info=bot_info)
-        request = construct_request(
-            self.afdian_config.afdian_api_base + "/api/open/ping",
-            bot_info,
-            params={"a": 333}
-        )
-        response = await self.request(request)
-        result = parse_response(response, PingResponse)
-
-        if isinstance(result, WrongResponse):
-            log(
-                "ERROR",
-                f"<y>Bot {bot.self_id}</y> connect <r>failed</r>, explain: {result.data.explain}, debug: {result.data.debug.kv_string}"
-            )
-            return
-
-        if result.ec != 200:
-            log("ERROR", f"<y>Bot {bot.self_id}</y> connect <r>failed</r>")
-            return
-        self.bot_connect(bot)
-        log("INFO", f"<y>Bot {escape_tag(bot_info.user_id)}</y> connected")
+        await self._connect_bot(bot_info)
 
     async def _handle_webhook(self, request: Request, bot_info: BotInfo) -> Response:
         json_data = json.loads(request.content)
@@ -128,3 +108,36 @@ class Adapter(BaseAdapter):
         if api not in ("/api/open/ping", "/api/open/query-order", "/api/open/query-sponsor"):
             log("ERROR", f"Unsupported api: {api}")
             raise ApiNotAvailable(api)
+
+    async def add_bot(self, bot_info: BotInfo) -> Bot | None:
+        """
+        在适配器中新增一个Bot
+        :param bot_info: Bot信息
+        :return: Bot 实例，连接失败则返回 None
+        """
+        return await self._connect_bot(bot_info)
+
+    async def _connect_bot(self, bot_info: BotInfo) -> Bot | None:
+        request = construct_request(
+            self.afdian_config.afdian_api_base + "/api/open/ping",
+            bot_info,
+            params={"a": 333}
+        )
+        response = await self.request(request)
+        result = parse_response(response, PingResponse)
+
+        if isinstance(result, WrongResponse):
+            log(
+                "ERROR",
+                f"<y>Bot {bot_info.user_id}</y> connect <r>failed</r>, explain: {result.data.explain}, debug: {result.data.debug.kv_string}"
+            )
+            return None
+
+        if result.ec != 200:
+            log("ERROR", f"<y>Bot {bot_info.user_id}</y> connect <r>failed</r>")
+            return None
+
+        bot = Bot(self, self_id=bot_info.user_id, bot_info=bot_info)
+        self.bot_connect(bot)
+        log("INFO", f"<y>Bot {escape_tag(bot_info.user_id)}</y> connected")
+        return bot
