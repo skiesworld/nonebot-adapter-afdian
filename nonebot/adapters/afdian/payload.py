@@ -92,6 +92,7 @@ class Order(BaseModel):
     custom_order_id: Optional[str] = None
     """自定义信息"""
     plan_title: Optional[str] = None
+    create_time: int
     user_private_id: Optional[str] = None
     user_id: str
     """下单用户ID"""
