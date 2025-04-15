@@ -68,7 +68,8 @@ class Adapter(BaseAdapter):
             event = type_validate_python(OrderNotifyEvent, json_data)
         except Exception as e:
             log("ERROR", f"Webhook data parse to event failed: {e}")
-            return Response(400, headers={"Content-Type": "application/json"}, content='{"ec": 400, "em": "parse data failed"}')
+            return Response(400, headers={"Content-Type": "application/json"},
+                            content='{"ec": 400, "em": "parse data failed"}')
 
         if event.data.order.out_trade_no == "202106232138371083454010626":
             # 测试订单号，用于测试
@@ -86,27 +87,32 @@ class Adapter(BaseAdapter):
         # 请求失败
         if verify_response.status_code != 200:
             log("ERROR", f"Webhook data request failed when verify: {verify_response.content}")
-            return Response(400, headers={"Content-Type": "application/json"}, content='{"ec": 400, "em": "Webhook data request failed when verify"}')
+            return Response(400, headers={"Content-Type": "application/json"},
+                            content='{"ec": 400, "em": "Webhook data request failed when verify"}')
 
         verify_order: OrderResponse | WrongResponse = parse_response(verify_response, OrderResponse)
         if isinstance(verify_request, WrongResponse):
             log("ERROR", f"Webhook data request failed when verify, ec: {verify_request.ec}, em: {verify_request.em}")
-            return Response(400, headers={"Content-Type": "application/json"}, content='{"ec": 400, "em": "Webhook data request failed when verify"}')
+            return Response(400, headers={"Content-Type": "application/json"},
+                            content='{"ec": 400, "em": "Webhook data request failed when verify"}')
         else:
             # 订单列表为空
             if not verify_order.data.list:
                 log("ERROR", "Webhook data <y>list</y> is <r>empty</r>! Verify failed.")
-                return Response(400, headers={"Content-Type": "application/json"}, content='{"ec": 400, "em": "order list is empty"}')
+                return Response(400, headers={"Content-Type": "application/json"},
+                                content='{"ec": 400, "em": "order list is empty"}')
 
             # 订单列表不为空但不一定有需要的数据
             for order in verify_order.data.list:
                 if order.out_trade_no == event.data.order.out_trade_no:
                     bot = cast(Bot, self.bots[bot_info.user_id])
                     asyncio.create_task(bot.handle_event(event))
-                    return Response(200, headers={"Content-Type": "application/json"}, content='{"ec": 200, "em": "success"}')
+                    return Response(200, headers={"Content-Type": "application/json"},
+                                    content='{"ec": 200, "em": "success"}')
             else:
                 log("ERROR", "Webhook data <y>out_trade_no</y> not found in <y>list</y>! Verify failed.")
-                return Response(400, headers={"Content-Type": "application/json"}, content='{"ec": 400, "em": "order not found when verify"}')
+                return Response(400, headers={"Content-Type": "application/json"},
+                                content='{"ec": 400, "em": "order not found when verify"}')
 
     @override
     async def _call_api(self, bot: Bot, api: str, **data: Any) -> Any:
@@ -120,14 +126,16 @@ class Adapter(BaseAdapter):
         :param bot_info: Bot信息
         :return: Bot 实例，连接失败则返回 None
         """
-        webhook_route = HTTPServerSetup(
-            URL("/afdian/webhooks/" + bot_info.user_id),
-            "POST",
-            self.get_name(),
-            partial(self._handle_webhook, bot_info=bot_info),
-        )
-        self.setup_http_server(webhook_route)
-        return await self._connect_bot(bot_info)
+        if bot := await self._connect_bot(bot_info):
+            webhook_route = HTTPServerSetup(
+                URL("/afdian/webhooks/" + bot_info.user_id),
+                "POST",
+                self.get_name(),
+                partial(self._handle_webhook, bot_info=bot_info),
+            )
+            self.setup_http_server(webhook_route)
+            return bot
+        return None
 
     async def _connect_bot(self, bot_info: BotInfo) -> Bot | None:
         request = construct_request(
