@@ -70,7 +70,10 @@ class OrderNotifyEvent(Event):
 
     def get_order(self):
         return self.data.order
+    
+    def get_order_id(self):
+        return self.data.order.out_trade_no
 
     @override
     def get_event_description(self) -> str:
-        return f"Order {self.data.order.out_trade_no} from user @{self.data.order.user_private_id}"
+        return f"Order {self.data.order.out_trade_no} from user @{self.data.order.user_id}"
