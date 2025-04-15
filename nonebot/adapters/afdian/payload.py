@@ -72,16 +72,16 @@ class TSExpiredResponse(BaseAfdianResponse):
     data: TSExpiredResponseData
 
 
-class SKUDetail(BaseModel):
+class SkuDetail(BaseModel):
     """售卖类型"""
 
     sku_id: str
     count: int
     name: str
-    album_id: Optional[str] = ""
-    pic: Optional[str] = ""
-    stock: Optional[str] = ""
-    post_id: Optional[str] = ""
+    album_id: Optional[str] = None
+    pic: Optional[str] = None
+    stock: Optional[str] = None
+    post_id: Optional[str] = None
 
 
 class Order(BaseModel):
@@ -92,13 +92,15 @@ class Order(BaseModel):
     custom_order_id: Optional[str] = None
     """自定义信息"""
     plan_title: Optional[str] = None
-    create_time: int
+    """Hook消息中可能不存在"""
+    create_time: Optional[int] = None
+    """Hook消息中可能不存在"""
     user_private_id: Optional[str] = None
     user_id: str
     """下单用户ID"""
     plan_id: str
     """方案ID，如自选，则为空"""
-    title: Optional[str] = ""
+    title: Optional[str] = None
     """方案描述"""
     month: int
     """赞助月份"""
@@ -108,21 +110,21 @@ class Order(BaseModel):
     """显示金额，如有折扣则为折扣前金额"""
     status: int
     """2 为交易成功。目前仅会推送此类型"""
-    remark: Optional[str] = ""
+    remark: Optional[str] = None
     """订单留言"""
-    redeem_id: Optional[str] = ""
+    redeem_id: Optional[str] = None
     """兑换码ID"""
     product_type: int
     """0 表示常规方案，1 表示售卖方案"""
-    discount: Optional[str] = ""
+    discount: Optional[str] = None
     """折扣"""
-    sku_detail: Optional[List[SKUDetail]] = []
+    sku_detail: Optional[List[SkuDetail]] = None
     """如果为售卖类型，以数组形式表示具体型号"""
-    address_person: Optional[str] = ""
+    address_person: Optional[str] = None
     """收件人"""
-    address_phone: Optional[str] = ""
+    address_phone: Optional[str] = None
     """收件人电话"""
-    address_address: Optional[str] = ""
+    address_address: Optional[str] = None
     """收件人地址"""
 
 
