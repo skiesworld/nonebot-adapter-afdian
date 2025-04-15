@@ -120,6 +120,13 @@ class Adapter(BaseAdapter):
         :param bot_info: Bot信息
         :return: Bot 实例，连接失败则返回 None
         """
+        webhook_route = HTTPServerSetup(
+            URL("/afdian/webhooks/" + bot_info.user_id),
+            "POST",
+            self.get_name(),
+            partial(self._handle_webhook, bot_info=bot_info),
+        )
+        self.setup_http_server(webhook_route)
         return await self._connect_bot(bot_info)
 
     async def _connect_bot(self, bot_info: BotInfo) -> Bot | None:
