@@ -7,32 +7,30 @@ from nonebot.utils import logger_wrapper
 from nonebot.drivers import Request, Response
 from nonebot.compat import type_validate_python
 
-from .config import BotInfo
 from .exception import ActionFailed
 from .payload import WrongResponse, BaseAfdianResponse
 
 log = logger_wrapper("Afdian")
 
 
-def construct_request(url: str, bot_info: BotInfo, params: Dict[str, Any]) -> Request:
+def construct_request(
+    url: str, user_id: str, token: str, params: Dict[str, Any]
+) -> Request:
     ts = int(time.time())
     param_json_data = json.dumps(params)
-    sign_str = f"{bot_info.api_token}params{param_json_data}ts{ts}user_id{bot_info.user_id}"
+    sign_str = f"{token}params{param_json_data}ts{ts}user_id{user_id}"
     sign = hashlib.md5(sign_str.encode("utf-8")).hexdigest()
     request = Request(
         "POST",
         url=url,
-        params={
-            "user_id": bot_info.user_id,
-            "params": param_json_data,
-            "ts": ts,
-            "sign": sign
-        }
+        params={"user_id": user_id, "params": param_json_data, "ts": ts, "sign": sign},
     )
     return request
 
 
-def parse_response(response: Response, response_model: Type[BaseAfdianResponse]) -> BaseAfdianResponse | WrongResponse:
+def parse_response(
+    response: Response, response_model: Type[BaseAfdianResponse]
+) -> BaseAfdianResponse | WrongResponse:
     json_data = json.loads(response.content)
     try:
         return type_validate_python(response_model, json_data)
