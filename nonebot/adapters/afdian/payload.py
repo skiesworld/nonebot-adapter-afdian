@@ -1,6 +1,6 @@
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from pydantic import Field, BaseModel
+from pydantic import BaseModel, Field
 
 
 class Request(BaseModel):
@@ -42,8 +42,8 @@ class PingResponseData(BaseModel):
 class ResponseData(BaseModel):
     """Response Data"""
 
-    total_count: Optional[int] = None
-    total_page: Optional[int] = None
+    total_count: int | None = None
+    total_page: int | None = None
     request: Request
 
 
@@ -78,10 +78,10 @@ class SkuDetail(BaseModel):
     sku_id: str
     count: int
     name: str
-    album_id: Optional[str] = None
-    pic: Optional[str] = None
-    stock: Optional[str] = None
-    post_id: Optional[str] = None
+    album_id: str | None = None
+    pic: str | None = None
+    stock: str | None = None
+    post_id: str | None = None
 
 
 class Order(BaseModel):
@@ -89,18 +89,18 @@ class Order(BaseModel):
 
     out_trade_no: str
     """订单号"""
-    custom_order_id: Optional[str] = None
+    custom_order_id: str | None = None
     """自定义信息"""
-    plan_title: Optional[str] = None
+    plan_title: str | None = None
     """Hook消息中可能不存在"""
-    create_time: Optional[int] = None
+    create_time: int | None = None
     """Hook消息中可能不存在"""
-    user_private_id: Optional[str] = None
+    user_private_id: str | None = None
     user_id: str
     """下单用户ID"""
     plan_id: str
     """方案ID，如自选，则为空"""
-    title: Optional[str] = None
+    title: str | None = None
     """方案描述"""
     month: int
     """赞助月份"""
@@ -110,35 +110,35 @@ class Order(BaseModel):
     """显示金额，如有折扣则为折扣前金额"""
     status: int
     """2 为交易成功。目前仅会推送此类型"""
-    remark: Optional[str] = None
+    remark: str | None = None
     """订单留言"""
-    redeem_id: Optional[str] = None
+    redeem_id: str | None = None
     """兑换码ID"""
     product_type: int
     """0 表示常规方案，1 表示售卖方案"""
-    discount: Optional[str] = None
+    discount: str | None = None
     """折扣"""
-    sku_detail: Optional[List[SkuDetail]] = None
+    sku_detail: list[SkuDetail] | None = None
     """如果为售卖类型，以数组形式表示具体型号"""
-    address_person: Optional[str] = None
+    address_person: str | None = None
     """收件人"""
-    address_phone: Optional[str] = None
+    address_phone: str | None = None
     """收件人电话"""
-    address_address: Optional[str] = None
+    address_address: str | None = None
     """收件人地址"""
 
 
 class WebhookData(BaseModel):
     """Webhook Data"""
 
-    type: Optional[str] = None
+    type: str | None = None
     order: Order
 
 
 class OrderResponseData(ResponseData):
     """订单响应"""
 
-    list: List[Order]
+    list: list[Order]
 
 
 class OrderResponse(BaseAfdianResponse):
@@ -169,7 +169,7 @@ class SponsorPlan(BaseModel):
     sale_limit_count: int
     need_invite_code: bool
     expire_time: int
-    sku_processed: List
+    sku_processed: list
     rankType: int
 
 
@@ -181,38 +181,38 @@ class Timing(BaseModel):
 class CurrentPlan(BaseModel):
     """赞助方案"""
 
-    can_ali_agreement: Optional[int] = None
-    plan_id: Optional[str] = None
-    rank: Optional[int] = None
-    user_id: Optional[str] = None
-    status: Optional[int] = None
+    can_ali_agreement: int | None = None
+    plan_id: str | None = None
+    rank: int | None = None
+    user_id: str | None = None
+    status: int | None = None
     name: str
-    pic: Optional[str] = None
-    desc: Optional[str] = None
-    price: Optional[str] = None
-    update_time: Optional[int] = None
-    timing: Optional[Timing] = None
-    pay_month: Optional[int] = None
-    show_price: Optional[str] = None
-    show_price_after_adjust: Optional[str] = None
-    has_coupon: Optional[int] = None
-    coupon: Optional[List] = None
-    favorable_price: Optional[int] = None
-    independent: Optional[int] = None
-    permanent: Optional[int] = None
-    can_buy_hide: Optional[int] = None
-    need_address: Optional[int] = None
-    product_type: Optional[int] = None
-    sale_limit_count: Optional[int] = None
-    need_invite_code: Optional[bool] = None
-    bundle_stock: Optional[int] = None
-    bundle_sku_select_count: Optional[int] = None
-    config: Optional[Dict[str, Any]] = None
-    has_plan_config: Optional[int] = None
-    shipping_fee_info: Optional[List] = None
-    expire_time: Optional[int] = None
-    sku_processed: Optional[List] = None
-    rank_type: Optional[int] = Field(None, alias='rankType')
+    pic: str | None = None
+    desc: str | None = None
+    price: str | None = None
+    update_time: int | None = None
+    timing: Timing | None = None
+    pay_month: int | None = None
+    show_price: str | None = None
+    show_price_after_adjust: str | None = None
+    has_coupon: int | None = None
+    coupon: list | None = None
+    favorable_price: int | None = None
+    independent: int | None = None
+    permanent: int | None = None
+    can_buy_hide: int | None = None
+    need_address: int | None = None
+    product_type: int | None = None
+    sale_limit_count: int | None = None
+    need_invite_code: bool | None = None
+    bundle_stock: int | None = None
+    bundle_sku_select_count: int | None = None
+    config: dict[str, Any] | None = None
+    has_plan_config: int | None = None
+    shipping_fee_info: list | None = None
+    expire_time: int | None = None
+    sku_processed: list | None = None
+    rank_type: int | None = Field(None, alias="rankType")
 
 
 class User(BaseModel):
@@ -229,15 +229,15 @@ class User(BaseModel):
 class SponsorList(BaseModel):
     """赞助者列表"""
 
-    sponsor_plans: List[SponsorPlan]
+    sponsor_plans: list[SponsorPlan]
     """赞助方案"""
     current_plan: CurrentPlan
     """当前赞助方案，如果节点仅有 name: ""，不包含其它内容时，表示无方案"""
     all_sum_amount: str
     """累计赞助金额，此处为折扣前金额。如有兑换码，则此处为虚拟金额，回比实际提现的多"""
-    create_time: Optional[int] = None
+    create_time: int | None = None
     """int 秒级时间戳，表示成为赞助者的时间，即首次赞助时间"""
-    first_pay_time: Optional[int] = None
+    first_pay_time: int | None = None
     last_pay_time: int
     """int 秒级时间戳，最近一次赞助时间"""
     user: User
@@ -247,7 +247,7 @@ class SponsorList(BaseModel):
 class SponsorResponseData(ResponseData):
     """赞助者响应数据"""
 
-    list: List[SponsorList]
+    list: list[SponsorList]
 
 
 class SponsorResponse(BaseAfdianResponse):

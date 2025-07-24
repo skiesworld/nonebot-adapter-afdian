@@ -1,10 +1,8 @@
-from typing import Optional
-
 from nonebot.drivers import Response
-from nonebot.exception import AdapterException
 from nonebot.exception import ActionFailed as BaseActionFailed
-from nonebot.exception import NetworkError as BaseNetworkError
+from nonebot.exception import AdapterException
 from nonebot.exception import ApiNotAvailable as BaseApiNotAvailable
+from nonebot.exception import NetworkError as BaseNetworkError
 
 
 class AfdianAdapterException(AdapterException):
@@ -13,9 +11,9 @@ class AfdianAdapterException(AdapterException):
 
 
 class NetworkError(BaseNetworkError, AfdianAdapterException):
-    def __init__(self, msg: Optional[str] = None):
+    def __init__(self, msg: str | None = None):
         super().__init__()
-        self.msg: Optional[str] = msg
+        self.msg: str | None = msg
         """错误原因"""
 
     def __repr__(self):
@@ -31,13 +29,13 @@ class ActionFailed(
 ):
     def __init__(self, response: Response):
         self.status_code: int = response.status_code
-        self.code: Optional[int] = None
-        self.message: Optional[str] = None
-        self.data: Optional[dict] = None
+        self.code: int | None = None
+        self.message: str | None = None
+        self.data: dict | None = None
 
 
 class ApiNotAvailable(BaseApiNotAvailable, AfdianAdapterException):
-    def __init__(self, msg: Optional[str] = None):
+    def __init__(self, msg: str | None = None):
         super().__init__()
-        self.msg: Optional[str] = msg
+        self.msg: str | None = msg
         """错误原因"""
