@@ -1,14 +1,13 @@
+from typing import TYPE_CHECKING, Any
 from typing_extensions import override
-from typing import TYPE_CHECKING, Any, Dict, List
-
-from nonebot.message import handle_event
 
 from nonebot.adapters import Bot as BaseBot
+from nonebot.message import handle_event
 
 from .event import Event
 from .message import Message, MessageSegment
-from .utils import parse_response, construct_request
-from .payload import PingResponse, OrderResponse, WrongResponse, SponsorResponse
+from .payload import OrderResponse, PingResponse, SponsorResponse, WrongResponse
+from .utils import construct_request, parse_response
 
 if TYPE_CHECKING:
     from .adapter import Adapter
@@ -53,7 +52,7 @@ class TokenBot(HookBot):
         return parse_response(response, PingResponse)
 
     async def __query_order(
-        self, params: Dict[str, Any]
+        self, params: dict[str, Any]
     ) -> OrderResponse | WrongResponse:
         request = construct_request(
             self.adapter.afdian_config.afdian_api_base + "/api/open/query-order",
@@ -74,9 +73,9 @@ class TokenBot(HookBot):
         """根据订单号查询订单"""
         return await self.__query_order(params={"out_trade_no": out_trade_no})
 
-    async def query_order_by_order_list(self, order_list: List[str]):
+    async def query_order_by_order_list(self, order_list: list[str]):
         """根据订单号列表查询多个订单"""
-        order_list_str = ",".join([out_trade_no for out_trade_no in order_list])
+        order_list_str = ",".join(order_list)
         return await self.__query_order(params={"out_trade_no": order_list_str})
 
     async def query_sponsor(

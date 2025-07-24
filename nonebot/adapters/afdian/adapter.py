@@ -1,23 +1,22 @@
-import json
 import asyncio
-from typing import Any, cast, Optional
 from functools import partial
+import json
+from typing import Any, cast
 from typing_extensions import override
-
-from nonebot.utils import escape_tag
-from nonebot.compat import type_validate_python
-from nonebot.internal.driver import HTTPClientMixin
-from nonebot.drivers import URL, Driver, Request, Response, HTTPServerSetup
 
 from nonebot import ASGIMixin, get_plugin_config
 from nonebot.adapters import Adapter as BaseAdapter
+from nonebot.compat import type_validate_python
+from nonebot.drivers import URL, Driver, HTTPServerSetup, Request, Response
+from nonebot.internal.driver import HTTPClientMixin
+from nonebot.utils import escape_tag
 
 from .bot import Bot, HookBot, TokenBot
-from .config import Config, BotInfo
+from .config import BotInfo, Config
 from .event import OrderNotifyEvent
 from .exception import ApiNotAvailable
-from .utils import log, parse_response, construct_request
-from .payload import PingResponse, OrderResponse, WrongResponse
+from .payload import OrderResponse, PingResponse, WrongResponse
+from .utils import construct_request, log, parse_response
 
 
 class Adapter(BaseAdapter):
@@ -97,7 +96,7 @@ class Adapter(BaseAdapter):
         return await self._handle_webhook(request, user_id)
 
     async def _handle_webhook(
-        self, request: Request, user_id: str, token: Optional[str] = None
+        self, request: Request, user_id: str, token: str | None = None
     ) -> Response:
         json_data = json.loads(request.content)
         try:

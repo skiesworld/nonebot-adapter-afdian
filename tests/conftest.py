@@ -1,7 +1,7 @@
 from pathlib import Path
 
-import pytest
 from nonebug import NONEBOT_INIT_KWARGS
+import pytest
 
 import nonebot
 from nonebot.adapters.afdian.adapter import Adapter
@@ -9,6 +9,7 @@ from nonebot.adapters.afdian.adapter import Adapter
 nonebot.adapters.__path__.append(  # type: ignore
     str((Path(__file__).parent.parent / "nonebot" / "adapters").resolve())
 )
+
 
 def pytest_configure(config: pytest.Config) -> None:
     config.stash[NONEBOT_INIT_KWARGS] = {
@@ -19,6 +20,7 @@ def pytest_configure(config: pytest.Config) -> None:
             },
         ]
     }
+
 
 @pytest.fixture(scope="session", autouse=True)
 def _init_adapter(nonebug_init: None):

@@ -2,9 +2,9 @@ import json
 from pathlib import Path
 
 import pytest
-from nonebot.compat import type_validate_python
 
 from nonebot.adapters.afdian.event import OrderNotifyEvent
+from nonebot.compat import type_validate_python
 
 
 @pytest.mark.asyncio

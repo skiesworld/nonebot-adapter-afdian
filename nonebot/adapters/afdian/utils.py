@@ -1,20 +1,20 @@
+import hashlib
 import json
 import time
-import hashlib
-from typing import Any, Dict, Type
+from typing import Any
 
-from nonebot.utils import logger_wrapper
-from nonebot.drivers import Request, Response
 from nonebot.compat import type_validate_python
+from nonebot.drivers import Request, Response
+from nonebot.utils import logger_wrapper
 
 from .exception import ActionFailed
-from .payload import WrongResponse, BaseAfdianResponse
+from .payload import BaseAfdianResponse, WrongResponse
 
 log = logger_wrapper("Afdian")
 
 
 def construct_request(
-    url: str, user_id: str, token: str, params: Dict[str, Any]
+    url: str, user_id: str, token: str, params: dict[str, Any]
 ) -> Request:
     ts = int(time.time())
     param_json_data = json.dumps(params)
@@ -29,7 +29,7 @@ def construct_request(
 
 
 def parse_response(
-    response: Response, response_model: Type[BaseAfdianResponse]
+    response: Response, response_model: type[BaseAfdianResponse]
 ) -> BaseAfdianResponse | WrongResponse:
     json_data = json.loads(response.content)
     try:
