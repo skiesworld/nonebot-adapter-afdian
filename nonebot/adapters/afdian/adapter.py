@@ -25,12 +25,12 @@ class Adapter(BaseAdapter):
         super().__init__(driver, **kwargs)
         self.afdian_config: Config = get_plugin_config(Config)
         self.tasks: list[asyncio.Task] = []
-        self._setup()
         self.webhook_url = (
             f"/afdian/{self.afdian_config.afdian_hook_secret}/webhooks/"
             if self.afdian_config.afdian_hook_secret
             else "/afdian/webhooks/"
         )
+        self._setup()
 
     @classmethod
     @override
