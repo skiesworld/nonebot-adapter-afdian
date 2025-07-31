@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from nonebot.adapters.afdian.event import OrderNotifyEvent
+from nonebot.adapters.afdian.event import OrderNotifyEvent  # type: ignore
 from nonebot.compat import type_validate_python
 
 
