@@ -19,7 +19,7 @@ def pytest_configure(config: pytest.Config) -> None:
         "afdian_bots": [
             {
                 "user_id": "user_id1",
-                "api_token": "api_token1",
+                "token": "api_token1",
             },
         ],
     }
