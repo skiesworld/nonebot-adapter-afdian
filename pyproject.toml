@@ -1,11 +1,26 @@
-[tool.poetry]
+[project]
 name = "nonebot-adapter-afdian"
 version = "0.1.4"
 description = "爱发电适配器"
-authors = ["17TheWord <17theword@gmail.com>"]
-license = "MIT"
+authors = [{ name = "17TheWord", email = "17theword@gmail.com" }]
+requires-python = ">=3.10, <4"
 readme = "README.md"
-packages = [{ include = "nonebot" }]
+license = "MIT"
+dependencies = [
+    "pydantic>=1.10.0,<3.0.0,!=2.5.0,!=2.5.1",
+    "nonebot2[fastapi, httpx]>=2.4.2,<3",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11.0,<0.12",
+    "pre-commit>=4.0.0,<5",
+]
+test = [
+    "nonebug>=0.4.3,<0.5",
+    "pytest-cov>=6.2.1,<7",
+    "pytest-asyncio>=1.1.0,<2",
+]
 
 [tool.nonebot]
 adapters = [{ name = "Afdian", module_name = "nonebot.adapters.afdian" }]
@@ -13,19 +28,21 @@ plugins = []
 plugin_dirs = []
 builtin_plugins = []
 
-[tool.poetry.dependencies]
-python = "^3.10"
-pydantic = ">=1.10.0,<3.0.0,!=2.5.0,!=2.5.1"
-nonebot2 = { version = "^2.4.2", extras = ["fastapi", "httpx"] }
+[tool.uv]
+default-groups = [
+    "dev",
+    "test",
+]
 
-[tool.poetry.group.dev.dependencies]
-ruff = "^0.11.0"
-pre-commit = "^4.0.0"
+[tool.hatch.build.targets.sdist]
+include = ["nonebot"]
 
-[tool.poetry.group.test.dependencies]
-nonebug = "^0.4.3"
-pytest-cov = "^6.2.1"
-pytest-asyncio = "^1.1.0"
+[tool.hatch.build.targets.wheel]
+include = ["nonebot"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -81,10 +98,6 @@ extra-standard-library = ["typing_extensions"]
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false
 mark-parentheses = false
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
 
 [tool.data.packages]
 my_package = { path = "nonebot/adapters/afdian" }
