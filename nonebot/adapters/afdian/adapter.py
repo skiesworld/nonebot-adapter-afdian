@@ -93,7 +93,14 @@ class Adapter(BaseAdapter):
         :param token: Bot Token 可选
         :return: 响应对象
         """
-        json_data = json.loads(str(request.content))
+        if not request.content:
+            log("ERROR", "Webhook data is empty.")
+            return Response(
+                400,
+                headers={"Content-Type": "application/json"},
+                content='{"ec": 400, "em": "data is empty"}',
+            )
+        json_data = json.loads(request.content)
         try:
             event = type_validate_python(OrderNotifyEvent, json_data)
         except Exception as e:
