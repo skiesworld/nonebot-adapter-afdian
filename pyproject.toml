@@ -31,6 +31,9 @@ pytest-asyncio = "^1.1.0"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 addopts = "--cov=nonebot/adapters/afdian --cov-report term-missing"
+filterwarnings = [
+    "ignore:Setting per-request cookies=.*:DeprecationWarning"
+]
 
 [tool.ruff]
 line-length = 88
