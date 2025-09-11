@@ -1,7 +1,8 @@
 from typing_extensions import override
 
-from nonebot import escape_tag, model_dump
 from nonebot.adapters import Event as BaseEvent
+from nonebot.compat import model_dump
+from nonebot.utils import escape_tag
 
 from .message import Message
 from .payload import WebhookData
@@ -67,7 +68,7 @@ class OrderNotifyEvent(Event):
     def get_session_id(self) -> str:
         return self.get_user_id()
 
-    def get_user_private_id(self) -> str:
+    def get_user_private_id(self) -> str | None:
         return self.data.order.user_private_id
 
     def get_order(self):
