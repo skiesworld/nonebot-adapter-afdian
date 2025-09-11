@@ -12,12 +12,13 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = [
-    "ruff>=0.11.0,<0.12",
-    "pre-commit>=4.0.0,<5",
-]
+dev = ["pre-commit>=4.0.0,<5", "nonebot2[fastapi, httpx, websockets]>=2.2.0,<3"]
+
+lint = ["ruff>=0.12.4,<0.13", "pre-commit>=4.2.0,<5"]
+
 test = [
     "nonebug>=0.4.3,<0.5",
+    "pytest>=8.4.2",
     "pytest-cov>=6.2.1,<7",
     "pytest-asyncio>=1.1.0,<2",
 ]
@@ -27,12 +28,6 @@ adapters = [{ name = "Afdian", module_name = "nonebot.adapters.afdian" }]
 plugins = []
 plugin_dirs = []
 builtin_plugins = []
-
-[tool.uv]
-default-groups = [
-    "dev",
-    "test",
-]
 
 [tool.hatch.build.targets.sdist]
 include = ["nonebot"]
@@ -44,13 +39,14 @@ include = ["nonebot"]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.uv]
+default-groups = ["dev", "test", "lint"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 addopts = "--cov=nonebot/adapters/afdian --cov-report term-missing"
-filterwarnings = [
-    "ignore:Setting per-request cookies=.*:DeprecationWarning"
-]
+filterwarnings = ["ignore:Setting per-request cookies=.*:DeprecationWarning"]
 
 [tool.ruff]
 line-length = 88
