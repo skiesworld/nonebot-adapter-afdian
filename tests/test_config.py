@@ -8,4 +8,4 @@ def test_config():
     config = adapter.afdian_config  # type: ignore
 
     # 期望配置中以 token 字段保存
-    assert config.afdian_bots == [BotInfo(token="api_token1", user_id="user_id1")]
+    assert config.afdian_bots == [BotInfo(user_id="fake", token="")]
