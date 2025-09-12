@@ -4,39 +4,48 @@
 
 ## 使用
 
-1.  安装
+1. 安装
+
     ```shell
     pip install nonebot-adapter-afdian
     ```
 
-2.  启用
+2. 启用
+
     ```toml
     adapters = [
         { name = "Afdian", module_name = "nonebot.adapter.afdian" }
     ]
     ```
 
-3.  配置
+3. 配置
 
     - NoneBot2
+
         ```dotenv
         DRIVER=~fastapi+~httpx
         HOST=0.0.0.0
+        AFDIAN_HOOK_SECRET='<Your Secret>'
         AFDIAN_BOTS='[
             {
-                "user_id": "<Your User id>",
-                "api_token": "<Your Api Token>"
+                "user_id": "<Your User Id>",
+                "token": "<Your Token>"
             }
         ]'
         ```
+
     - 爱发电开发者控制台
+
         ```shell
         http://<IP>:<PORT>/afdian/webhooks/<user_id>
         ```
+
         or
+
         ```shell
-        https://<IP>:<PORT>/afdian/webhooks/<user_id>
+        https://<IP>:<PORT>/afdian/<Your Secret>/webhooks/<user_id>
         ```
+
 ## API
 
 ```python
@@ -48,6 +57,8 @@ test_afd = on_notice()
 
 @test_afd.handle()
 async def handle_afd(bot: Bot, event: OrderNotifyEvent):
+    print("订单：" + event.data.order)
+
     result1 = await bot.query_order_by_page(page=1)
     print(result1)
 
@@ -74,7 +85,7 @@ async def handle_afd(bot: Bot, event: OrderNotifyEvent):
 
 ## 贡献与支持
 
-觉得好用可以给这个项目点个 `Star` 或者去 [爱发电](https://afdian.net/a/17TheWord) 投喂我。
+觉得好用可以给这个项目点个 `Star` 或者去 [爱发电](https://afdian.com/a/17TheWord) 投喂我。
 
 有意见或者建议也欢迎提交 [Issues](https://github.com/MineGraphCN/nonebot-adapter-afdian/issues)
 和 [Pull requests](https://github.com/MineGraphCN/nonebot-adapter-afdian/pulls) 。
@@ -82,4 +93,3 @@ async def handle_afd(bot: Bot, event: OrderNotifyEvent):
 ## 开源许可
 
 本项目使用 [MIT](./LICENSE) 作为开源许可证。
-

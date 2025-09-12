@@ -7,4 +7,5 @@ def test_config():
     adapter = get_adapter(Adapter)
     config = adapter.afdian_config  # type: ignore
 
-    assert config.afdian_bots == [BotInfo(api_token="api_token1", user_id="user_id1")]
+    # 期望配置中以 token 字段保存
+    assert config.afdian_bots == [BotInfo(user_id="fake", token="")]

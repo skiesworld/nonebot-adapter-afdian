@@ -4,11 +4,11 @@ import json
 from typing import Any, cast
 from typing_extensions import override
 
-from nonebot import ASGIMixin, get_plugin_config
+from nonebot import get_plugin_config
 from nonebot.adapters import Adapter as BaseAdapter
 from nonebot.compat import type_validate_python
 from nonebot.drivers import URL, Driver, HTTPServerSetup, Request, Response
-from nonebot.internal.driver import HTTPClientMixin
+from nonebot.internal.driver import ASGIMixin, HTTPClientMixin
 from nonebot.utils import escape_tag
 
 from .bot import Bot, HookBot, TokenBot
@@ -48,16 +48,8 @@ class Adapter(BaseAdapter):
                 f"Current driver {self.config.driver} does not support http server! "
                 f"{self.get_name()} Adapter need a ASGI Driver to work."
             )
-        # 设置一个公用 Hook，用于直接添加 HookBot
-        webhook_route = HTTPServerSetup(
-            URL(self.webhook_url),
-            "POST",
-            self.get_name(),
-            self._handle_common_webhook,
-        )
-        self.setup_http_server(webhook_route)
 
-        # 为每一个配置过的 Bot 设置 Hook 路由
+        # 为每一个配置过的 Bot 设置专属路由
         for bot_info in self.afdian_config.afdian_bots:
             webhook_route = HTTPServerSetup(
                 URL(self.webhook_url + bot_info.user_id),
@@ -71,33 +63,45 @@ class Adapter(BaseAdapter):
         self.on_ready(self._startup)
 
     async def _startup(self):
+        log("INFO", "AFDian Adapter startup.")
         for bot_info in self.afdian_config.afdian_bots:
-            self.tasks.append(asyncio.create_task(self._startup_bot(bot_info)))
+            if bot_info.token:
+                self.tasks.append(asyncio.create_task(self._startup_bot(bot_info)))
+                log(
+                    "INFO",
+                    f"Bot <y>{escape_tag(bot_info.user_id)}</y> will connect with token.",
+                )
+            else:
+                bot = HookBot(self, self_id=bot_info.user_id)
+                self.bot_connect(bot)
+                log(
+                    "INFO",
+                    f"<y>Bot {escape_tag(bot_info.user_id)}</y> has no token, "
+                    f"<y>skipped connecting</y>.",
+                )
 
     async def _startup_bot(self, bot_info: BotInfo):
-        await self._connect_bot(bot_info.user_id, bot_info.token)
-
-    async def _handle_common_webhook(self, request: Request) -> Response:
-        # 截取最后一个/后面的内容作为user_id
-        user_id = request.url.path.split("/")[-1]
-        if user_id not in self.bots.keys():
-            # 如果没有找到对应的Bot，则创建一个HookBot
-            webhook_route = HTTPServerSetup(
-                URL(self.webhook_url + user_id),
-                "POST",
-                self.get_name(),
-                partial(self._handle_webhook, user_id=user_id),
-            )
-            self.setup_http_server(webhook_route)
-
-            bot = HookBot(self, user_id)
-            self.bot_connect(bot)
-
-        return await self._handle_webhook(request, user_id)
+        await self._connect_bot(bot_info)
 
     async def _handle_webhook(
         self, request: Request, user_id: str, token: str | None = None
     ) -> Response:
+        """
+        处理 Webhook 请求
+        该函数会验证请求的合法性，并将订单通知事件传递给对应的 Bot 进行处理
+
+        :param request: 请求对象
+        :param user_id: Bot 用户 ID
+        :param token: Bot Token 可选
+        :return: 响应对象
+        """
+        if not request.content:
+            log("ERROR", "Webhook data is empty.")
+            return Response(
+                400,
+                headers={"Content-Type": "application/json"},
+                content='{"ec": 400, "em": "data is empty"}',
+            )
         json_data = json.loads(request.content)
         try:
             event = type_validate_python(OrderNotifyEvent, json_data)
@@ -110,7 +114,7 @@ class Adapter(BaseAdapter):
             )
 
         if event.data.order.out_trade_no == "202106232138371083454010626":
-            # 测试订单号，用于测试
+            # 测试订单号，用于测试 webhook 是否能正常收到
             log(
                 "INFO",
                 "Webhook received <y>test order</y> notify: 202106232138371083454010626",
@@ -157,10 +161,11 @@ class Adapter(BaseAdapter):
         verify_order: OrderResponse | WrongResponse = parse_response(
             verify_response, OrderResponse
         )
-        if isinstance(verify_request, WrongResponse):
+
+        if isinstance(verify_order, WrongResponse):
             log(
                 "ERROR",
-                f"Webhook data request failed when verify, ec: {verify_request.ec}, em: {verify_request.em}",
+                f"Webhook data request failed when verify, ec: {verify_order.ec}, em: {verify_order.em}",
             )
             return Response(
                 400,
@@ -168,7 +173,7 @@ class Adapter(BaseAdapter):
                 content='{"ec": 400, "em": "Webhook data request failed when verify"}',
             )
         else:
-            # 订单列表为空
+            # 订单列表为空，代表订单不存在，验证失败
             if not verify_order.data.list:
                 log("ERROR", "Webhook data <y>list</y> is <r>empty</r>! Verify failed.")
                 return Response(
@@ -177,7 +182,7 @@ class Adapter(BaseAdapter):
                     content='{"ec": 400, "em": "order list is empty"}',
                 )
 
-            # 订单列表不为空但不一定有需要的数据
+            # 订单列表不为空，但不一定有需要的数据
             for order in verify_order.data.list:
                 if order.out_trade_no == event.data.order.out_trade_no:
                     bot = cast(Bot, self.bots[user_id])
@@ -219,17 +224,20 @@ class Adapter(BaseAdapter):
                 URL("/afdian/webhooks/" + bot_info.user_id),
                 "POST",
                 self.get_name(),
-                partial(self._handle_webhook, bot_info=bot_info),
+                partial(
+                    self._handle_webhook, user_id=bot_info.user_id, token=bot_info.token
+                ),
             )
             self.setup_http_server(webhook_route)
             return bot
         return None
 
-    async def _connect_bot(self, user_id: str, token: str) -> TokenBot | None:
+    async def _connect_bot(self, bot_info: BotInfo) -> TokenBot | None:
+        assert bot_info.token
         request = construct_request(
             self.afdian_config.afdian_api_base + "/api/open/ping",
-            user_id,
-            token,
+            bot_info.user_id,
+            bot_info.token,
             params={"a": 333},
         )
         response = await self.request(request)
@@ -238,16 +246,16 @@ class Adapter(BaseAdapter):
         if isinstance(result, WrongResponse):
             log(
                 "ERROR",
-                f"<y>Bot {user_id}</y> connect <r>failed</r>, "
+                f"<y>Bot {bot_info.user_id}</y> connect <r>failed</r>, "
                 f"explain: {result.data.explain}, debug: {result.data.debug.kv_string}",
             )
             return None
 
         if result.ec != 200:
-            log("ERROR", f"<y>Bot {user_id}</y> connect <r>failed</r>")
+            log("ERROR", f"<y>Bot {bot_info.user_id}</y> connect <r>failed</r>")
             return None
 
-        bot = TokenBot(self, self_id=user_id, token=token)
+        bot = TokenBot(self, self_id=bot_info.user_id, token=bot_info.token)
         self.bot_connect(bot)
-        log("INFO", f"<y>Bot {escape_tag(user_id)}</y> connected")
+        log("INFO", f"<y>Bot {escape_tag(bot_info.user_id)}</y> connected")
         return bot

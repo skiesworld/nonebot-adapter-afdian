@@ -1,7 +1,7 @@
 import hashlib
 import json
 import time
-from typing import Any
+from typing import Any, TypeVar
 
 from nonebot.compat import type_validate_python
 from nonebot.drivers import Request, Response
@@ -11,6 +11,9 @@ from .exception import ActionFailed
 from .payload import BaseAfdianResponse, WrongResponse
 
 log = logger_wrapper("Afdian")
+
+# 泛型类型，用于根据传入的 response_model 精确推断返回值类型
+T = TypeVar("T", bound=BaseAfdianResponse)
 
 
 def construct_request(
@@ -28,17 +31,18 @@ def construct_request(
     return request
 
 
-def parse_response(
-    response: Response, response_model: type[BaseAfdianResponse]
-) -> BaseAfdianResponse | WrongResponse:
-    json_data = json.loads(response.content)
+def parse_response(response: Response, response_model: type[T]) -> T | WrongResponse:
+    raw = str(response.content)
     try:
-        return type_validate_python(response_model, json_data)
-    except Exception as e:
-        log("WARNING", f"Failed to parse response as {response_model.__name__}: {e}")
+        json_data = json.loads(raw)
+    except json.JSONDecodeError as e:
+        log("ERROR", f"Response JSON decode failed: {e}; raw={raw[:200]}")
+        raise ActionFailed(response) from e
+
+    for model, level in ((response_model, "WARNING"), (WrongResponse, "ERROR")):
         try:
-            # 尝试将响应内容解析为通用的错误响应模型
-            return type_validate_python(WrongResponse, json_data)
-        except Exception as e:
-            log("ERROR", f"Failed to parse response as WrongResponse: {e}")
-            raise ActionFailed(response) from e
+            return type_validate_python(model, json_data)
+        except Exception as e:  # 或更窄的 ValidationError
+            log(level, f"Failed to parse as {model.__name__}: {e}")
+
+    raise ActionFailed(response)

@@ -18,8 +18,8 @@ def pytest_configure(config: pytest.Config) -> None:
         "driver": "~fastapi+~httpx",
         "afdian_bots": [
             {
-                "user_id": "user_id1",
-                "api_token": "api_token1",
+                "user_id": "fake",
+                "token": "",
             },
         ],
     }

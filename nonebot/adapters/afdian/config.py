@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field
 
 
 class BotInfo(BaseModel):
@@ -8,6 +8,5 @@ class BotInfo(BaseModel):
 
 class Config(BaseModel):
     afdian_bots: list[BotInfo] = Field(default_factory=list)
-    afdian_api_base: HttpUrl = Field("https://afdian.com")
+    afdian_api_base: str = Field("https://afdian.com")
     afdian_hook_secret: str = Field("")
-    afdian_enable_hook_bot: bool = Field(False)
