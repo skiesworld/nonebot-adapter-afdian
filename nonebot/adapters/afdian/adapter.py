@@ -72,6 +72,8 @@ class Adapter(BaseAdapter):
                     f"Bot <y>{escape_tag(bot_info.user_id)}</y> will connect with token.",
                 )
             else:
+                bot = HookBot(self, self_id=bot_info.user_id)
+                self.bot_connect(bot)
                 log(
                     "INFO",
                     f"<y>Bot {escape_tag(bot_info.user_id)}</y> has no token, "
