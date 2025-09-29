@@ -80,7 +80,7 @@ class SkuDetail(BaseModel):
     name: str
     album_id: str | None = None
     pic: str | None = None
-    stock: str | None = None
+    stock: str | int | None = None
     post_id: str | None = None
 
 
