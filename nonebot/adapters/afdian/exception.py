@@ -44,8 +44,7 @@ class ActionFailed(
             self.data = None
 
     def __repr__(self):
-        base = f"<ActionFailed status={self.status_code} code={self.code} message={self.message}>"
-        return base
+        return f"<ActionFailed status={self.status_code} code={self.code} message={self.message}>"
 
     __str__ = __repr__
 
