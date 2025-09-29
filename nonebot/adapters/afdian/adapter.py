@@ -14,8 +14,8 @@ from nonebot.utils import escape_tag
 from .bot import Bot, HookBot, TokenBot
 from .config import BotInfo, Config
 from .event import OrderNotifyEvent
-from .exception import ApiNotAvailable
-from .payload import OrderResponse, PingResponse, WrongResponse
+from .exception import ActionFailed, ApiNotAvailable
+from .payload import OrderResponse, PingResponse
 from .utils import construct_request, log, parse_response
 
 
@@ -158,50 +158,48 @@ class Adapter(BaseAdapter):
                 content='{"ec": 400, "em": "Webhook data request failed when verify"}',
             )
 
-        verify_order: OrderResponse | WrongResponse = parse_response(
-            verify_response, OrderResponse
-        )
-
-        if isinstance(verify_order, WrongResponse):
+        try:
+            verify_order: OrderResponse = parse_response(verify_response, OrderResponse)
+        except ActionFailed as e:
             log(
                 "ERROR",
-                f"Webhook data request failed when verify, ec: {verify_order.ec}, em: {verify_order.em}",
+                f"Webhook data request failed when verify, status={e.status_code} code={getattr(e, 'code', None)} message={getattr(e, 'message', None)}",
             )
             return Response(
                 400,
                 headers={"Content-Type": "application/json"},
                 content='{"ec": 400, "em": "Webhook data request failed when verify"}',
             )
-        else:
-            # 订单列表为空，代表订单不存在，验证失败
-            if not verify_order.data.list:
-                log("ERROR", "Webhook data <y>list</y> is <r>empty</r>! Verify failed.")
-                return Response(
-                    400,
-                    headers={"Content-Type": "application/json"},
-                    content='{"ec": 400, "em": "order list is empty"}',
-                )
 
-            # 订单列表不为空，但不一定有需要的数据
-            for order in verify_order.data.list:
-                if order.out_trade_no == event.data.order.out_trade_no:
-                    bot = cast(Bot, self.bots[user_id])
-                    asyncio.create_task(bot.handle_event(event))
-                    return Response(
-                        200,
-                        headers={"Content-Type": "application/json"},
-                        content='{"ec": 200, "em": "success"}',
-                    )
-            else:
-                log(
-                    "ERROR",
-                    "Webhook data <y>out_trade_no</y> not found in <y>list</y>! Verify failed.",
-                )
+        # 订单列表为空，代表订单不存在，验证失败
+        if not verify_order.data.list:
+            log("ERROR", "Webhook data <y>list</y> is <r>empty</r>! Verify failed.")
+            return Response(
+                400,
+                headers={"Content-Type": "application/json"},
+                content='{"ec": 400, "em": "order list is empty"}',
+            )
+
+        # 订单列表不为空，但不一定有需要的数据
+        for order in verify_order.data.list:
+            if order.out_trade_no == event.data.order.out_trade_no:
+                bot = cast(Bot, self.bots[user_id])
+                asyncio.create_task(bot.handle_event(event))
                 return Response(
-                    400,
+                    200,
                     headers={"Content-Type": "application/json"},
-                    content='{"ec": 400, "em": "order not found when verify"}',
+                    content='{"ec": 200, "em": "success"}',
                 )
+        else:
+            log(
+                "ERROR",
+                "Webhook data <y>out_trade_no</y> not found in <y>list</y>! Verify failed.",
+            )
+            return Response(
+                400,
+                headers={"Content-Type": "application/json"},
+                content='{"ec": 400, "em": "order not found when verify"}',
+            )
 
     @override
     async def _call_api(self, bot: Bot, api: str, **data: Any) -> Any:
@@ -241,18 +239,25 @@ class Adapter(BaseAdapter):
             params={"a": 333},
         )
         response = await self.request(request)
-        result = parse_response(response, PingResponse)
-
-        if isinstance(result, WrongResponse):
-            log(
-                "ERROR",
-                f"<y>Bot {bot_info.user_id}</y> connect <r>failed</r>, "
-                f"explain: {result.data.explain}, debug: {result.data.debug.kv_string}",
-            )
-            return None
-
-        if result.ec != 200:
-            log("ERROR", f"<y>Bot {bot_info.user_id}</y> connect <r>failed</r>")
+        try:
+            ping = parse_response(response, PingResponse)
+            if ping.ec != 200:
+                log(
+                    "ERROR",
+                    f"<y>Bot {bot_info.user_id}</y> connect <r>failed</r>, ec={ping.ec} em={ping.em}",
+                )
+                return None
+        except ActionFailed as e:
+            if e.wrong:
+                log(
+                    "ERROR",
+                    f"<y>Bot {bot_info.user_id}</y> connect <r>failed</r>, explain: {e.wrong.data.explain}, debug: {e.wrong.data.debug.kv_string}",
+                )
+            else:
+                log(
+                    "ERROR",
+                    f"<y>Bot {bot_info.user_id}</y> connect <r>failed</r>, status={e.status_code}",
+                )
             return None
 
         bot = TokenBot(self, self_id=bot_info.user_id, token=bot_info.token)

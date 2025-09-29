@@ -4,6 +4,8 @@ from nonebot.exception import AdapterException
 from nonebot.exception import ApiNotAvailable as BaseApiNotAvailable
 from nonebot.exception import NetworkError as BaseNetworkError
 
+from .payload import WrongResponse  # type: ignore
+
 
 class AfdianAdapterException(AdapterException):
     def __init__(self):
@@ -27,11 +29,24 @@ class ActionFailed(
     BaseActionFailed,
     AfdianAdapterException,
 ):
-    def __init__(self, response: Response):
+    def __init__(self, response: Response, wrong: WrongResponse | None = None):
         self.status_code: int = response.status_code
-        self.code: int | None = None
-        self.message: str | None = None
-        self.data: dict | None = None
+        self.wrong: WrongResponse | None = wrong
+        # 兼容 nonebot ActionFailed 预期字段
+        if wrong:
+            self.code = wrong.ec
+            self.message = wrong.em
+            # 保留完整结构，便于上层记录
+            self.data = wrong.model_dump()
+        else:
+            self.code = None
+            self.message = None
+            self.data = None
+
+    def __repr__(self):
+        return f"<ActionFailed status={self.status_code} code={self.code} message={self.message}>"
+
+    __str__ = __repr__
 
 
 class ApiNotAvailable(BaseApiNotAvailable, AfdianAdapterException):
