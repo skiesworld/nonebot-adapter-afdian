@@ -66,7 +66,7 @@ class Adapter(BaseAdapter):
         log("INFO", "AFDian Adapter startup.")
         for bot_info in self.afdian_config.afdian_bots:
             if bot_info.token:
-                self.tasks.append(asyncio.create_task(self._startup_bot(bot_info)))
+                self.tasks.append(asyncio.create_task(self._connect_bot(bot_info)))
                 log(
                     "INFO",
                     f"Bot <y>{escape_tag(bot_info.user_id)}</y> will connect with token.",
@@ -79,9 +79,6 @@ class Adapter(BaseAdapter):
                     f"<y>Bot {escape_tag(bot_info.user_id)}</y> has no token, "
                     f"<y>skipped connecting</y>.",
                 )
-
-    async def _startup_bot(self, bot_info: BotInfo):
-        await self._connect_bot(bot_info)
 
     async def _handle_webhook(
         self, request: Request, user_id: str, token: str | None = None
