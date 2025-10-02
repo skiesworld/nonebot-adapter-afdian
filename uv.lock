@@ -556,7 +556,7 @@ wheels = [
 
 [[package]]
 name = "nonebot-adapter-afdian"
-version = "0.1.7"
+version = "0.1.8"
 source = { editable = "." }
 dependencies = [
     { name = "nonebot2", extra = ["fastapi", "httpx"] },
