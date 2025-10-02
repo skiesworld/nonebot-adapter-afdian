@@ -41,33 +41,34 @@ def parse_response(response: Response, response_model: type[T]) -> T:
     :param response_model: 期望的响应模型类型
     :return: 解析后的响应对象
     """
-    raw = str(response.content)
+    if not response.content:
+        raise ActionFailed(response.status_code, message="Empty response")
+
+    if isinstance(response.content, bytes):
+        raw = response.content.decode("UTF-8")
+    else:
+        raw = str(response.content)
+
     try:
         json_data = json.loads(raw)
     except json.JSONDecodeError as e:
         log("ERROR", f"Response JSON decode failed: {e}; raw={raw[:200]}")
-        raise ActionFailed(response) from e
+        raise ActionFailed(response.status_code, message="JSON decode error") from e
 
-    # 先尝试解析为正确模型
     try:
-        model_obj = type_validate_python(response_model, json_data)
-        # 如果 ec != 200, 仍视为业务错误，尝试解析为 WrongResponse 以提供更多调试信息
-        if getattr(model_obj, "ec", None) != 200:
-            try:
-                wrong_obj = type_validate_python(WrongResponse, json_data)
-            except Exception:
-                wrong_obj = None
-            raise ActionFailed(response, wrong=wrong_obj)
-        return model_obj
+        return type_validate_python(response_model, json_data)
     except Exception as e:
         log("WARNING", f"Failed to parse as {response_model.__name__}: {e}")
 
-    # 尝试解析为 WrongResponse
     try:
         wrong_obj = type_validate_python(WrongResponse, json_data)
-        raise ActionFailed(response, wrong=wrong_obj)
+        raise ActionFailed(response.status_code, wrong=wrong_obj)
     except ActionFailed:
         raise
     except Exception as e:
         log("ERROR", f"Failed to parse as WrongResponse: {e}")
-        raise ActionFailed(response) from e
+        raise ActionFailed(
+            response.status_code,
+            message="Failed to parse error response",
+            data=json_data,
+        ) from e

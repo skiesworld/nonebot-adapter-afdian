@@ -1,4 +1,5 @@
-from nonebot.drivers import Response
+from typing import Any
+
 from nonebot.exception import ActionFailed as BaseActionFailed
 from nonebot.exception import AdapterException
 from nonebot.exception import ApiNotAvailable as BaseApiNotAvailable
@@ -29,28 +30,44 @@ class ActionFailed(
     BaseActionFailed,
     AfdianAdapterException,
 ):
-    def __init__(self, response: Response, wrong: WrongResponse | None = None):
-        self.status_code: int = response.status_code
+    def __init__(
+        self,
+        status_code: int,
+        code: int | None = None,
+        message: str | None = None,
+        data: dict[str, Any] | None = None,
+        wrong: WrongResponse | None = None,
+    ):
+        """
+        一般情况下，有 wrong 则无其他信息
+
+        :param status_code: HTTP 状态码
+        :param code: API 错误码
+        :param message: 错误信息
+        :param data: 额外数据
+        :param wrong: 如果有的话，附带的 WrongResponse 对象
+        """
+        self.status_code: int = status_code
         self.wrong: WrongResponse | None = wrong
-        # 兼容 nonebot ActionFailed 预期字段
         if wrong:
             self.code = wrong.ec
             self.message = wrong.em
-            # 保留完整结构，便于上层记录
             self.data = wrong.model_dump()
         else:
-            self.code = None
-            self.message = None
-            self.data = None
+            self.code = code
+            self.message = message
+            self.data = data
 
     def __repr__(self):
-        return f"<ActionFailed status={self.status_code} code={self.code} message={self.message}>"
+        if self.wrong:
+            return f"<ActionFailed status_code={self.status_code}, ec={self.wrong.ec}, em={self.wrong.em}, explan={self.wrong.data.explain} raw_data={self.data}>"
+        return f"<ActionFailed status_code={self.status_code} code={self.code} message={self.message}>"
 
     __str__ = __repr__
 
 
 class ApiNotAvailable(BaseApiNotAvailable, AfdianAdapterException):
-    def __init__(self, msg: str | None = None):
+    def __init__(self, message: str | None = None):
         super().__init__()
-        self.msg: str | None = msg
-        """错误原因"""
+        self.message: str | None = message
+        """API 不可用的原因"""
